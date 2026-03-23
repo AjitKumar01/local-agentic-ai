@@ -27,7 +27,10 @@ def _extract_python_code(text: str) -> str:
 
 def coder(state: AgentState, llm) -> dict:
     """Generate (or revise) Python code implementing the mathematical theory."""
-    is_revision = bool(state.get("review") or state.get("execution_error"))
+    has_review = state.get("review") and not state.get("review_approved", False)
+    has_exec_error = bool(state.get("execution_error"))
+    is_revision = has_review or has_exec_error
+
     if is_revision:
         log.info("[Coder] Revising code (attempt #%d) …", state.get("revision_count", 0) + 1)
     else:
@@ -42,19 +45,21 @@ def coder(state: AgentState, llm) -> dict:
         state["plan"],
     ]
 
-    # If this is a revision pass, include feedback
-    review = state.get("review")
-    if review and not state.get("review_approved", False):
-        parts.append("\n\n## Reviewer Feedback (MUST address all issues)\n\n")
-        parts.append(review)
+    # ── Revision context: keep it focused ────────────────────────────────
+    # Priority: execution errors first (concrete), then review feedback
+    if has_exec_error:
+        parts.append("\n\n## RUNTIME ERROR — FIX THIS FIRST\n\n")
+        parts.append(f"The code below was executed and crashed with this error:\n```\n{state['execution_error']}\n```\n")
+        parts.append("Fix this specific error. Do NOT rewrite the code from scratch — make the minimal change to fix the crash.\n")
 
-    exec_error = state.get("execution_error")
-    if exec_error:
-        parts.append("\n\n## Runtime Error (MUST fix)\n\n")
-        parts.append(f"```\n{exec_error}\n```")
+    if has_review and not has_exec_error:
+        # Only show review feedback if there's no exec error (exec error takes priority)
+        parts.append("\n\n## Reviewer Feedback — Address ALL Issues Below\n\n")
+        parts.append(state["review"])
+        parts.append("\n\nFix each numbered issue. Do NOT introduce unrelated changes.\n")
 
     previous_code = state.get("code")
-    if previous_code and (review or exec_error):
+    if previous_code and is_revision:
         parts.append("\n\n## Previous Code (revise this)\n\n")
         parts.append(f"```python\n{previous_code}\n```")
 

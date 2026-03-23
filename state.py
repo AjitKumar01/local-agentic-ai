@@ -29,5 +29,7 @@ class AgentState(TypedDict, total=False):
     execution_error: str
     execution_success: bool
 
-    # Loop control
-    revision_count: int
+    # Loop control — separate counters for clarity
+    revision_count: int   # total coder invocations beyond the first
+    review_round: int     # how many times reviewer rejected
+    exec_round: int       # how many times executor failed

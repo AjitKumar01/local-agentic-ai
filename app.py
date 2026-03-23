@@ -80,8 +80,8 @@ def run_pipeline(theory: str, base_url: str, temperature: float):
     final_state = {}
     try:
         for step_output in app.stream(
-            {"theory_input": theory, "revision_count": 0},
-            {"recursion_limit": 25},
+            {"theory_input": theory, "revision_count": 0, "review_round": 0, "exec_round": 0},
+            {"recursion_limit": 40},
         ):
             for node_name, update in step_output.items():
                 final_state.update(update)

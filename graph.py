@@ -12,7 +12,9 @@ from agents.reviewer import reviewer
 from agents.theory_analyst import theory_analyst
 from state import AgentState
 
-MAX_REVISIONS = 3
+MAX_REVISIONS = 5          # total coder re-invocations
+MAX_REVIEW_ROUNDS = 3      # reviewer rejections before giving up
+MAX_EXEC_ROUNDS = 2        # executor failures before giving up
 
 
 def _get_llm(base_url: str = "http://127.0.0.1:1234/v1", temperature: float = 0.2) -> ChatOpenAI:
@@ -30,6 +32,8 @@ def _after_reviewer(state: AgentState) -> str:
     """Decide where to go after the reviewer node."""
     if state.get("review_approved"):
         return "executor"
+    if state.get("review_round", 0) >= MAX_REVIEW_ROUNDS:
+        return END
     if state.get("revision_count", 0) >= MAX_REVISIONS:
         return END
     return "coder"
@@ -38,6 +42,8 @@ def _after_reviewer(state: AgentState) -> str:
 def _after_executor(state: AgentState) -> str:
     """Decide where to go after the executor node."""
     if state.get("execution_success"):
+        return END
+    if state.get("exec_round", 0) >= MAX_EXEC_ROUNDS:
         return END
     if state.get("revision_count", 0) >= MAX_REVISIONS:
         return END
@@ -61,11 +67,30 @@ def _make_planner_node(llm):
 def _make_coder_node(llm):
     def _node(state: AgentState) -> dict:
         result = coder(state, llm)
-        # Bump revision count whenever the coder runs after the first time
+        # Bump counters
         revision_count = state.get("revision_count", 0)
-        if state.get("review") or state.get("execution_error"):
+        review_round = state.get("review_round", 0)
+        exec_round = state.get("exec_round", 0)
+
+        has_review_feedback = state.get("review") and not state.get("review_approved", False)
+        has_exec_error = bool(state.get("execution_error"))
+
+        if has_review_feedback or has_exec_error:
             revision_count += 1
+        if has_review_feedback:
+            review_round += 1
+        if has_exec_error:
+            exec_round += 1
+
         result["revision_count"] = revision_count
+        result["review_round"] = review_round
+        result["exec_round"] = exec_round
+
+        # Clear execution error after the coder has consumed it,
+        # so the reviewer doesn't see stale error context
+        if has_exec_error:
+            result["execution_error"] = ""
+            result["execution_success"] = False
         return result
     return _node
 

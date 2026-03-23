@@ -25,4 +25,14 @@ Provide 2–3 concrete test cases with known expected results that can be used t
 ## 6. Edge Cases
 Identify potential edge cases or failure modes (e.g., division by zero, singular matrices, non-convergence).
 
+## 7. Numerical Pitfalls
+Explicitly list common numerical hazards for THIS specific theory, for example:
+- Where `log(0)` or `log(negative)` could occur and how to prevent it (e.g., clipping probabilities away from 0 and 1)
+- Where overflow/underflow in `exp()` could happen (e.g., large logits in softmax/sigmoid)
+- Where division by zero is possible (e.g., normalisation constants, gradient denominators)
+- Where matrix singularity could arise
+- Where catastrophic cancellation could lose precision
+
+For each pitfall, state the **specific safeguard** (e.g., "clip predictions to [epsilon, 1-epsilon] before computing log-loss").
+
 Be precise and thorough. Your analysis will be used directly by a code planner and coder to implement this theory in Python.

@@ -16,10 +16,19 @@ For each non-trivial function, describe the algorithm or numerical method to use
 - Convergence criteria (if iterative)
 - Numerical precision considerations
 
-## 4. Data Structures
+## 4. Numerical Safety Plan
+For each pitfall identified in the analysis, specify the exact safeguard to implement:
+- Where to use `np.clip()` before `np.log()` (specify the epsilon value, e.g., `1e-15`)
+- Where to clip exponent arguments to prevent overflow in `np.exp()`
+- Where to add epsilon to denominators
+- Where to use `np.linalg.solve()` instead of matrix inversion
+
+This section is CRITICAL — the coder will follow it exactly.
+
+## 5. Data Structures
 Specify the data structures for inputs, intermediates, and outputs (e.g., numpy arrays, floats, dicts).
 
-## 5. Demonstration Plan
+## 6. Demonstration Plan
 Describe what the `if __name__ == "__main__"` block should demonstrate:
 - Which test cases from the analysis to run
 - What to print (inputs, outputs, expected vs actual values)

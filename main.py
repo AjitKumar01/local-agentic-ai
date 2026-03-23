@@ -93,8 +93,8 @@ def main() -> None:
     # Stream the graph so we can show progress
     final_state = None
     for step_output in app.stream(
-        {"theory_input": theory_input, "revision_count": 0},
-        {"recursion_limit": 25},
+        {"theory_input": theory_input, "revision_count": 0, "review_round": 0, "exec_round": 0},
+        {"recursion_limit": 40},
     ):
         # step_output is {node_name: state_update}
         for node_name, update in step_output.items():
